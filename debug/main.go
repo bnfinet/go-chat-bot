@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/go-chat-bot/bot"
+	bot "github.com/bnfinet/go-chat-bot"
 	_ "github.com/go-chat-bot/plugins-br/cnpj"
 	_ "github.com/go-chat-bot/plugins-br/cotacao"
 	_ "github.com/go-chat-bot/plugins-br/cpf"
