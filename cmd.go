@@ -48,9 +48,10 @@ type Message struct {
 // FilterCmd holds information about what is output being filtered - message and
 // channel where it is being sent
 type FilterCmd struct {
-	Target  string // Channel or user the message is being sent to
-	Message string // Message text being sent
-	User    *User  // User who triggered original message
+	Target      string       // Channel or user the message is being sent to
+	ChannelData *ChannelData // Channel and network info
+	Message     string       // Message text being sent
+	User        *User        // User who triggered original message
 }
 
 // PassiveCmd holds the information which will be passed to passive commands when receiving a message
@@ -121,9 +122,10 @@ type CmdResult struct {
 
 // CmdResultV3 is the result message of V3 commands
 type CmdResultV3 struct {
-	Channel string
-	Message chan string
-	Done    chan bool
+	Channel     string
+	ChannelData ChannelData
+	Message     chan string
+	Done        chan bool
 }
 
 const (
@@ -316,7 +318,7 @@ func (b *Bot) executePassiveCommands(cmd *PassiveCmd) {
 				if err != nil {
 					b.errored(fmt.Sprintf("Error executing %s", cmdFunc.Cmd), err)
 				} else {
-					b.SendMessage(cmd.Channel, result, cmd.User)
+					b.SendMessage(cmd.Channel, cmd.ChannelData, result, cmd.User)
 				}
 			case pv2:
 				result, err := cmdFunc.PassiveFuncV2(cmd)
@@ -329,7 +331,7 @@ func (b *Bot) executePassiveCommands(cmd *PassiveCmd) {
 					select {
 					case message := <-result.Message:
 						if message != "" {
-							b.SendMessage(result.Channel, message, cmd.User)
+							b.SendMessage(result.Channel, &result.ChannelData, message, cmd.User)
 						}
 					case <-result.Done:
 						return
@@ -379,7 +381,7 @@ func (b *Bot) handleCmd(c *Cmd) {
 		message, err := cmd.CmdFuncV1(c)
 		b.checkCmdError(err, c)
 		if message != "" {
-			b.SendMessage(c.Channel, message, c.User)
+			b.SendMessage(c.Channel, c.ChannelData, message, c.User)
 		}
 	case v2:
 		result, err := cmd.CmdFuncV2(c)
@@ -389,7 +391,7 @@ func (b *Bot) handleCmd(c *Cmd) {
 		}
 
 		if result.Message != "" {
-			b.SendMessage(result.Channel, result.Message, c.User)
+			b.SendMessage(result.Channel, c.ChannelData, result.Message, c.User)
 		}
 	case v3:
 		result, err := cmd.CmdFuncV3(c)
@@ -401,7 +403,7 @@ func (b *Bot) handleCmd(c *Cmd) {
 			select {
 			case message := <-result.Message:
 				if message != "" {
-					b.SendMessage(result.Channel, message, c.User)
+					b.SendMessage(result.Channel, c.ChannelData, message, c.User)
 				}
 			case <-result.Done:
 				return
@@ -414,7 +416,7 @@ func (b *Bot) checkCmdError(err error, c *Cmd) {
 	if err != nil {
 		errorMsg := fmt.Sprintf(errorExecutingCommand, c.Command, err.Error())
 		b.errored(errorMsg, err)
-		b.SendMessage(c.Channel, errorMsg, c.User)
+		b.SendMessage(c.Channel, c.ChannelData, errorMsg, c.User)
 	}
 }
 
@@ -445,7 +447,7 @@ func (b *Bot) handleMessageStream(streamName string, ms *MessageStream) {
 				continue
 			}
 			if d.Message != "" {
-				b.SendMessage(d.ChannelData.Channel, d.Message, nil)
+				b.SendMessage(d.ChannelData.Channel, d.ChannelData, d.Message, nil)
 			}
 		case <-ms.Done:
 			return

@@ -39,3 +39,4 @@ _testmain.go
 src/github.com/*
 src/gopkg.in/*
 
+debug/debug

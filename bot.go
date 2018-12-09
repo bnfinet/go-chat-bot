@@ -139,7 +139,8 @@ func (b *Bot) startPeriodicCommands() {
 						if err != nil {
 							b.errored("Periodic command failed ", err)
 						} else if message != "" {
-							b.SendMessage(channel, message, nil)
+							cd := &ChannelData{Channel: channel, Server: b.Server, Protocol: b.Protocol}
+							b.SendMessage(channel, cd, message, nil)
 						}
 					}
 				case v2:
@@ -149,7 +150,8 @@ func (b *Bot) startPeriodicCommands() {
 						return
 					}
 					for _, result := range results {
-						b.SendMessage(result.Channel, result.Message, nil)
+						cd := &ChannelData{Channel: result.Channel, Server: b.Server, Protocol: b.Protocol}
+						b.SendMessage(result.Channel, cd, result.Message, nil)
 					}
 				}
 			})
@@ -164,7 +166,7 @@ func (b *Bot) startPeriodicCommands() {
 func (b *Bot) MessageReceived(channel *ChannelData, message *Message, sender *User) {
 	command, err := parse(message.Text, channel, sender)
 	if err != nil {
-		b.SendMessage(channel.Channel, err.Error(), sender)
+		b.SendMessage(channel.Channel, channel, err.Error(), sender)
 		return
 	}
 
@@ -192,11 +194,13 @@ func (b *Bot) MessageReceived(channel *ChannelData, message *Message, sender *Us
 }
 
 // SendMessage queues a message for a target recipient, optionally from a particular sender.
-func (b *Bot) SendMessage(target string, message string, sender *User) {
+func (b *Bot) SendMessage(target string, cd *ChannelData, message string, sender *User) {
+	// func (b *Bot) SendMessage(target string, message string, sender *User) {
 	message = b.executeFilterCommands(&FilterCmd{
-		Target:  target,
-		Message: message,
-		User:    sender})
+		Target:      target,
+		ChannelData: cd,
+		Message:     message,
+		User:        sender})
 	if message == "" {
 		return
 	}
