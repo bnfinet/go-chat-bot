@@ -2,7 +2,6 @@ package bot
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -80,9 +79,9 @@ func cleanString(s string) string {
 			}
 		}
 	}
-	if string(old) != string(ret) {
-		fmt.Printf("clean string old: %s new: %s\n", old, ret)
-	}
+	// if string(old) != string(ret) {
+	// 	fmt.Printf("clean string old: %s new: %s\n", old, ret)
+	// }
 	return string(ret)
 }
 
