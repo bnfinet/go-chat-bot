@@ -102,16 +102,17 @@ type MessageStreamConfig struct {
 }
 
 type customCommand struct {
-	Version       int
-	Cmd           string
-	CmdFuncV1     activeCmdFuncV1
-	CmdFuncV2     activeCmdFuncV2
-	CmdFuncV3     activeCmdFuncV3
-	PassiveFuncV1 passiveCmdFuncV1
-	PassiveFuncV2 passiveCmdFuncV2
-	FilterFuncV1  filterCmdFuncV1
-	Description   string
-	ExampleArgs   string
+	Version            int
+	Cmd                string
+	CmdFuncV1          activeCmdFuncV1
+	CmdFuncV2          activeCmdFuncV2
+	CmdFuncV3          activeCmdFuncV3
+	PassiveFuncV1      passiveCmdFuncV1
+	PassiveFuncV2      passiveCmdFuncV2
+	FilterFuncV1       filterCmdFuncV1
+	FilterMsgRecFuncV1 filterMessageReceiveFuncV1
+	Description        string
+	ExampleArgs        string
 }
 
 // CmdResult is the result message of V2 commands
@@ -150,6 +151,8 @@ type activeCmdFuncV1 func(cmd *Cmd) (string, error)
 type activeCmdFuncV2 func(cmd *Cmd) (CmdResult, error)
 type activeCmdFuncV3 func(cmd *Cmd) (CmdResultV3, error)
 
+type filterMessageReceiveFuncV1 func(msg *Message, cmd *Cmd) error
+
 type filterCmdFuncV1 func(cmd *FilterCmd) (string, error)
 
 type messageStreamFunc func(ms *MessageStream) error
@@ -165,10 +168,11 @@ type messageStreamKey struct {
 }
 
 var (
-	commands         = make(map[string]*customCommand)
-	passiveCommands  = make(map[string]*customCommand)
-	filterCommands   = make(map[string]*customCommand)
-	periodicCommands = make(map[string]PeriodicConfig)
+	commands              = make(map[string]*customCommand)
+	passiveCommands       = make(map[string]*customCommand)
+	filterCommands        = make(map[string]*customCommand)
+	receiveMessageFilters = make(map[string]*customCommand)
+	periodicCommands      = make(map[string]PeriodicConfig)
 
 	messageStreamConfigs []*MessageStreamConfig
 
@@ -273,6 +277,22 @@ func RegisterFilterCommand(command string, cmdFunc filterCmdFuncV1) {
 	}
 }
 
+// RegisterMessageReceiveFilter adds a command that is run every time bot receives
+// a message. The comand should be registered in the Init() func of your package.
+// Filter commands receive message and its destination and should return
+// modified version. Returning empty string prevents message being sent
+// completely
+// command: String used to identify the command, for internal use only (ex: silence)
+// cmdFunc: Function which will be executed. It will receive the raw message and
+// parsed commmand (may be nil if no cmd is detected)
+func RegisterMessageReceiveFilter(command string, cmdFunc filterMessageReceiveFuncV1) {
+	receiveMessageFilters[command] = &customCommand{
+		Version:            fv1,
+		Cmd:                command,
+		FilterMsgRecFuncV1: cmdFunc,
+	}
+}
+
 // RegisterPeriodicCommand adds a command that is run periodically.
 // The command should be registered in the Init() func of your package
 // config: PeriodicConfig which specify CronSpec and a channel list
@@ -357,6 +377,20 @@ func (b *Bot) executeFilterCommands(cmd *FilterCmd) string {
 		}
 	}
 	return cmd.Message
+}
+
+func (b *Bot) executeMessageReceiveFilters(msg *Message, cmd *Cmd) {
+	for k, filter := range receiveMessageFilters {
+		switch filter.Version {
+		case fv1:
+			err := filter.FilterMsgRecFuncV1(msg, cmd)
+			if err != nil {
+				b.errored(fmt.Sprintf("Error executing receive filter %s", k), err)
+				continue
+			}
+		}
+	}
+	return
 }
 
 func (b *Bot) isDisabled(cmd string) bool {

@@ -170,6 +170,11 @@ func (b *Bot) MessageReceived(channel *ChannelData, message *Message, sender *Us
 		return
 	}
 
+	if (command != nil && command.Command != "") || message.Text != "" {
+		// there there's something here to be filtered
+		b.executeMessageReceiveFilters(message, command)
+	}
+
 	if command == nil {
 		b.executePassiveCommands(&PassiveCmd{
 			Raw:         message.Text,
