@@ -56,7 +56,10 @@ func errorHandler(msg string, err error) {
 	cmdError <- fmt.Sprintf("%s: %s", msg, err)
 }
 
+var mutex = &sync.Mutex{}
+
 func reset() {
+	mutex.Lock()
 	channel = ""
 	user = &User{Nick: ""}
 	replies = make(chan string, 10)
@@ -67,6 +70,8 @@ func reset() {
 	periodicCommands = make(map[string]PeriodicConfig)
 	passiveCommands = make(map[string]*customCommand)
 	filterCommands = make(map[string]*customCommand)
+	receiveMessageFilters = make(map[string]*customCommand)
+	mutex.Unlock()
 }
 
 func newBot() *Bot {
@@ -336,8 +341,8 @@ func TestInvalidCmdArgs(t *testing.T) {
 	if channel != "#go-bot" {
 		t.Error("Should reply to #go-bot channel")
 	}
-	if !strings.HasPrefix(msgs[0], "Error parsing") {
-		t.Fatal("Should reply with an error message")
+	if strings.HasPrefix(msgs[0], "Error parsing") {
+		t.Fatal("Should not reply with an error message")
 	}
 }
 
@@ -469,8 +474,8 @@ func TestHelpWithInvalidArgs(t *testing.T) {
 
 	waitMessages(t, 1, 0)
 
-	if !strings.HasPrefix(msgs[0], "Error parsing") {
-		t.Fatal("Should reply with an error message")
+	if strings.HasPrefix(msgs[0], "Error parsing") {
+		t.Fatal("Should not reply with an error message")
 	}
 }
 
@@ -631,6 +636,37 @@ func TestCmdV3WithoutSpecifyingChannel(t *testing.T) {
 	}
 }
 
+func TestMessageRecieveFilter(t *testing.T) {
+	reset()
+	hello := func(c *Cmd) (string, error) { return "after receive filter: " + c.Message, nil }
+	RegisterCommand("cmd", "", "", hello)
+
+	modified := func(msg *Message, cmd *Cmd) error { cmd.Message = "modified"; return nil }
+	errored := func(msg *Message, cmd *Cmd) error { return errors.New("error") }
+
+	RegisterMessageReceiveFilter("modified", modified)
+	RegisterMessageReceiveFilter("errored", errored)
+
+	b := newBot()
+	b.MessageReceived(&ChannelData{Channel: "#go-bot"}, &Message{Text: "!cmd"}, &User{Nick: "user"})
+
+	waitMessages(t, 1, 1)
+
+	if channel != "#go-bot" {
+		t.Error("Invalid channel")
+	}
+	if len(msgs) != 1 {
+		t.Fatal("Invalid reply")
+	}
+	if len(errs) != 1 {
+		t.Error("Expected 1 error")
+	}
+
+	sort.Strings(msgs)
+	if msgs[0] != "after receive filter: modified" {
+		t.Error("recieve filter command not working")
+	}
+}
 func TestFilterCommand(t *testing.T) {
 	reset()
 	passiveCommands = make(map[string]*customCommand)
