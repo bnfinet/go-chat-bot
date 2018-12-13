@@ -163,24 +163,24 @@ func (b *Bot) startPeriodicCommands() {
 }
 
 // MessageReceived must be called by the protocol upon receiving a message
-func (b *Bot) MessageReceived(channel *ChannelData, message *Message, sender *User) {
-	command, err := parse(message.Text, channel, sender)
+func (b *Bot) MessageReceived(cd *ChannelData, message *Message, sender *User) {
+	command, err := parse(message.Text, cd, sender)
 	if err != nil {
-		b.SendMessage(channel.Channel, channel, err.Error(), sender)
+		b.SendMessage(cd.Channel, cd, err.Error(), sender)
 		return
 	}
 
 	if (command != nil && command.Command != "") || message.Text != "" {
 		// there there's something here to be filtered
-		b.executeMessageReceiveFilters(message, command)
+		b.executeMessageReceiveFilters(cd, message, sender, command)
 	}
 
 	if command == nil {
 		b.executePassiveCommands(&PassiveCmd{
 			Raw:         message.Text,
 			MessageData: message,
-			Channel:     channel.Channel,
-			ChannelData: channel,
+			Channel:     cd.Channel,
+			ChannelData: cd,
 			User:        sender,
 		})
 		return

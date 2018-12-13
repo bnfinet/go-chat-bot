@@ -151,7 +151,7 @@ type activeCmdFuncV1 func(cmd *Cmd) (string, error)
 type activeCmdFuncV2 func(cmd *Cmd) (CmdResult, error)
 type activeCmdFuncV3 func(cmd *Cmd) (CmdResultV3, error)
 
-type filterMessageReceiveFuncV1 func(msg *Message, cmd *Cmd) error
+type filterMessageReceiveFuncV1 func(cd *ChannelData, msg *Message, sender *User, cmd *Cmd) error
 
 type filterCmdFuncV1 func(cmd *FilterCmd) (string, error)
 
@@ -379,11 +379,11 @@ func (b *Bot) executeFilterCommands(cmd *FilterCmd) string {
 	return cmd.Message
 }
 
-func (b *Bot) executeMessageReceiveFilters(msg *Message, cmd *Cmd) {
+func (b *Bot) executeMessageReceiveFilters(cd *ChannelData, msg *Message, sender *User, cmd *Cmd) {
 	for k, filter := range receiveMessageFilters {
 		switch filter.Version {
 		case fv1:
-			err := filter.FilterMsgRecFuncV1(msg, cmd)
+			err := filter.FilterMsgRecFuncV1(cd, msg, sender, cmd)
 			if err != nil {
 				b.errored(fmt.Sprintf("Error executing receive filter %s", k), err)
 				continue

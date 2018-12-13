@@ -641,8 +641,11 @@ func TestMessageRecieveFilter(t *testing.T) {
 	hello := func(c *Cmd) (string, error) { return "after receive filter: " + c.Message, nil }
 	RegisterCommand("cmd", "", "", hello)
 
-	modified := func(msg *Message, cmd *Cmd) error { cmd.Message = "modified"; return nil }
-	errored := func(msg *Message, cmd *Cmd) error { return errors.New("error") }
+	modified := func(cd *ChannelData, msg *Message, sender *User, cmd *Cmd) error {
+		cmd.Message = "modified"
+		return nil
+	}
+	errored := func(cd *ChannelData, msg *Message, sender *User, cmd *Cmd) error { return errors.New("error") }
 
 	RegisterMessageReceiveFilter("modified", modified)
 	RegisterMessageReceiveFilter("errored", errored)
