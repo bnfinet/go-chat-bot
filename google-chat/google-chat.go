@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/go-chat-bot/bot"
+
+	bot "github.com/bnfinet/go-chat-bot"
+	// "github.com/go-chat-bot/bot"
+
 	"golang.org/x/oauth2/google"
 )
 
@@ -135,7 +138,16 @@ func Run(config *Config) {
 			case "ADDED_TO_SPACE":
 				if config.WelcomeMessage != "" {
 					log.Printf("Sending welcome message to %s\n", msg.Space.Name)
-					b.SendMessage(msg.Space.Name, config.WelcomeMessage, nil)
+					b.SendMessage(msg.Space.Name,
+						&bot.ChannelData{
+							Protocol:  protocol,
+							Server:    server,
+							HumanName: msg.Space.DisplayName,
+							Channel:   msg.Space.Name + ":" + msg.Message.Thread.Name,
+							IsPrivate: msg.Space.Type == "DM",
+						},
+						config.WelcomeMessage,
+						nil)
 				}
 			case "REMOVED_FROM_SPACE":
 				break
