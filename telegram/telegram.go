@@ -26,6 +26,7 @@ func responseHandler(target string, message string, sender *bot.User) {
 		return
 	}
 	msg := tgbotapi.NewMessage(id, message)
+	msg.ParseMode = tgbotapi.ModeMarkdown
 
 	tg.Send(msg)
 }
