@@ -64,16 +64,6 @@ func logErrorHandler(msg string, err error) {
 	log.Printf("%s: %s", msg, err.Error())
 }
 
-var singleton *Bot
-
-// GetInstance hand back the Bot singleton
-func GetInstance() (*Bot, error) {
-	if singleton != nil {
-		return singleton, nil
-	}
-	return nil, errors.New("bot has not been initialized")
-}
-
 // New configures a new bot instance
 func New(h *Handlers, bc *Config) *Bot {
 	if h.Errored == nil {
@@ -97,8 +87,6 @@ func New(h *Handlers, bc *Config) *Bot {
 
 	b.startPeriodicCommands()
 
-	// store the Bot in a singleton to hand it back to anyone else who comes asking
-	singleton = b
 	return b
 }
 
