@@ -487,3 +487,37 @@ func (b *Bot) handleMessageStream(streamName string, ms *MessageStream) {
 		}
 	}
 }
+
+// // handleMessageStream
+// // if there are two bots (telegram, irc) and three messsages(a, b, c) then there will be six entries in messageStreams[key]
+// // when a message is sent into a chan it has a good chance of arriving at the wrong bot instance
+// // for every message we check to see if it matched this b.Protocol and b.Server
+// // if it doesn't we lookup the entry in messageStreams[key] send it to *that* Data chan
+// func (b *Bot) handleMessageStream(streamName string, ms *MessageStream) {
+// 	for {
+// 		select {
+// 		case d := <-ms.Data:
+
+// 			if d.ChannelData.Protocol != b.Protocol || d.ChannelData.Server != b.Server {
+// 				// then lookup who it *should* be sent to and send it back into *that* chan
+// 				key := messageStreamKey{Protocol: d.ChannelData.Protocol, Server: d.ChannelData.Server, StreamName: streamName}
+// 				msMap.RLock()
+// 				msMap.messageStreams[key].Data <- d
+// 				msMap.RUnlock()
+// 				continue
+// 			}
+
+// 			// this message is meant for us!
+
+// 			if d.ChannelData.Channel == "" {
+// 				b.errored("handleMessageStream: "+d.Message, errNoChannelSpecified)
+// 				continue
+// 			}
+// 			if d.Message != "" {
+// 				b.SendMessage(d.ChannelData.Channel, d.Message, nil)
+// 			}
+// 		case <-ms.Done:
+// 			return
+// 		}
+// 	}
+// }
