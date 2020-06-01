@@ -33,7 +33,6 @@ type Config struct {
 	PubSubProject    string
 	TopicName        string
 	SubscriptionName string
-	Token            string
 	WelcomeMessage   string
 }
 
@@ -124,11 +123,6 @@ func Run(config *Config) {
 				m.Ack()
 				return
 			}
-			if msg.Token != config.Token {
-				log.Printf("Failed to verify token: %s", msg.Token)
-				m.Ack()
-				return
-			}
 
 			log.Printf("Space: %s (%s)\n", msg.Space.Name, msg.Space.DisplayName)
 			log.Printf("Message type: %s\n", msg.Type)
@@ -137,16 +131,10 @@ func Run(config *Config) {
 			case "ADDED_TO_SPACE":
 				if config.WelcomeMessage != "" {
 					log.Printf("Sending welcome message to %s\n", msg.Space.Name)
-					b.SendMessage(msg.Space.Name,
-						&bot.ChannelData{
-							Protocol:  protocol,
-							Server:    server,
-							HumanName: msg.Space.DisplayName,
-							Channel:   msg.Space.Name + ":" + msg.Message.Thread.Name,
-							IsPrivate: msg.Space.Type == "DM",
-						},
-						config.WelcomeMessage,
-						nil)
+					b.SendMessage(bot.OutgoingMessage{
+						Target:  msg.Space.Name,
+						Message: config.WelcomeMessage,
+					})
 				}
 			case "REMOVED_FROM_SPACE":
 				break

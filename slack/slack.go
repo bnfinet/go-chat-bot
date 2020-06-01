@@ -4,8 +4,8 @@ package slack
 import (
 	"fmt"
 
-	bot "github.com/bnfinet/go-chat-bot"
-	"github.com/nlopes/slack"
+	"github.com/go-chat-bot/bot"
+	"github.com/slack-go/slack"
 )
 
 // MessageFilter allows implementing a filter function to transform the messages
@@ -31,11 +31,49 @@ func defaultMessageFilter(message string, _ *bot.User) (string, slack.PostMessag
 
 func responseHandler(target string, message string, sender *bot.User) {
 	message, params := messageFilter(message, sender)
-	_, _, err := api.PostMessage(target, slack.MsgOptionPostMessageParameters(params),
-		slack.MsgOptionText(message, false))
+	_, _, err := api.PostMessage(
+		target,
+		slack.MsgOptionPostMessageParameters(params),
+		slack.MsgOptionText(message, false),
+	)
 	if err != nil {
 		fmt.Printf("Error sending a slack message: %s\n", err.Error())
 	}
+}
+
+func responseHandlerV2(om bot.OutgoingMessage) {
+	message, params := messageFilter(om.Message, om.Sender)
+	if pmp, ok := om.ProtoParams.(*slack.PostMessageParameters); ok {
+		params = *pmp
+	}
+	_, _, err := api.PostMessage(
+		om.Target,
+		slack.MsgOptionPostMessageParameters(params),
+		slack.MsgOptionText(message, false),
+	)
+	if err != nil {
+		fmt.Printf("Error sending a slack message: %s\n", err.Error())
+	}
+}
+
+// AddReactionToMessage allows you to add a reaction, to a message.
+func AddReactionToMessage(msgid, channel string, reaction string) error {
+	toReact := slack.ItemRef{
+		Timestamp: msgid,
+		Channel:   channel,
+	}
+
+	return api.AddReaction(reaction, toReact)
+}
+
+// RemoveReactionFromMessage allows you to remove a reaction, from a message.
+func RemoveReactionFromMessage(msgid, channel string, reaction string) error {
+	reactionRef := slack.ItemRef{
+		Timestamp: msgid,
+		Channel:   channel,
+	}
+
+	return api.RemoveReaction(reaction, reactionRef)
 }
 
 // FindUserBySlackID converts a slack.User into a bot.User struct
@@ -74,7 +112,9 @@ func extractUser(event *slack.MessageEvent) *bot.User {
 }
 
 func extractText(event *slack.MessageEvent) *bot.Message {
-	msg := &bot.Message{}
+	msg := &bot.Message{
+		ProtoMsg: event,
+	}
 	if len(event.Text) != 0 {
 		msg.Text = event.Text
 		if event.SubType == "me_message" {
@@ -130,7 +170,8 @@ func Run(token string) {
 	teaminfo, _ = api.GetTeamInfo()
 
 	b := bot.New(&bot.Handlers{
-		Response: responseHandler,
+		Response:   responseHandler,
+		ResponseV2: responseHandlerV2,
 	},
 		&bot.Config{
 			Protocol: protocol,
@@ -156,24 +197,26 @@ Loop:
 				readChannelData(api)
 
 			case *slack.MessageEvent:
-				if !ev.Hidden && !ownMessage(ev.User) {
-					C := channelList[ev.Channel]
-					var channel = ev.Channel
-					if C.IsChannel {
-						channel = fmt.Sprintf("#%s", C.Name)
-					}
-					go b.MessageReceived(
-						&bot.ChannelData{
-							Protocol:  "slack",
-							Server:    teaminfo.Domain,
-							Channel:   channel,
-							HumanName: C.Name,
-							IsPrivate: !C.IsChannel,
-						},
-						extractText(ev),
-						extractUser(ev),
-					)
+				if ev.Hidden || ownMessage(ev.User) {
+					continue
 				}
+
+				C := channelList[ev.Channel]
+				var channel = ev.Channel
+				if C.IsChannel {
+					channel = fmt.Sprintf("#%s", C.Name)
+				}
+				go b.MessageReceived(
+					&bot.ChannelData{
+						Protocol:  protocol,
+						Server:    teaminfo.Domain,
+						Channel:   channel,
+						HumanName: C.Name,
+						IsPrivate: !C.IsChannel,
+					},
+					extractText(ev),
+					extractUser(ev),
+				)
 
 			case *slack.RTMError:
 				fmt.Printf("Error: %s\n", ev.Error())

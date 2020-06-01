@@ -41,8 +41,9 @@ func (c *ChannelData) URI() string {
 
 // Message holds the message info - for IRC and Slack networks, this can include whether the message was an action.
 type Message struct {
-	Text     string // The actual content of this Message
-	IsAction bool   // True if this was a '/me does something' message
+	Text     string      // The actual content of this Message
+	IsAction bool        // True if this was a '/me does something' message
+	ProtoMsg interface{} // The underlying object that we got from the protocol pkg
 }
 
 // FilterCmd holds information about what is output being filtered - message and
@@ -110,16 +111,17 @@ type customCommand struct {
 
 // CmdResult is the result message of V2 commands
 type CmdResult struct {
-	Channel string // The channel where the bot should send the message
-	Message string // The message to be sent
+	Channel     string // The channel where the bot should send the message
+	Message     string // The message to be sent
+	ProtoParams interface{}
 }
 
 // CmdResultV3 is the result message of V3 commands
 type CmdResultV3 struct {
 	Channel     string
-	ChannelData ChannelData
 	Message     chan string
 	Done        chan bool
+	ProtoParams interface{}
 }
 
 const (
@@ -338,7 +340,15 @@ func (b *Bot) executePassiveCommands(cmd *PassiveCmd) {
 				if err != nil {
 					b.errored(fmt.Sprintf("Error executing %s", cmdFunc.Cmd), err)
 				} else {
+<<<<<<< HEAD
 					b.SendMessage(cmd.Channel, cmd.ChannelData, result, cmd.User)
+=======
+					b.SendMessage(OutgoingMessage{
+						Target:  cmd.Channel,
+						Message: result,
+						Sender:  cmd.User,
+					})
+>>>>>>> ef71c72a524ae1242a47163d87b52dda69583bf6
 				}
 			case pv2:
 				result, err := cmdFunc.PassiveFuncV2(cmd)
@@ -346,12 +356,20 @@ func (b *Bot) executePassiveCommands(cmd *PassiveCmd) {
 					b.errored(fmt.Sprintf("Error executing %s", cmdFunc.Cmd), err)
 					return
 				}
-
 				for {
 					select {
 					case message := <-result.Message:
 						if message != "" {
+<<<<<<< HEAD
 							b.SendMessage(result.Channel, &result.ChannelData, message, cmd.User)
+=======
+							b.SendMessage(OutgoingMessage{
+								Target:      result.Channel,
+								Message:     message,
+								Sender:      cmd.User,
+								ProtoParams: result.ProtoParams,
+							})
+>>>>>>> ef71c72a524ae1242a47163d87b52dda69583bf6
 						}
 					case <-result.Done:
 						return
@@ -415,7 +433,15 @@ func (b *Bot) handleCmd(c *Cmd) {
 		message, err := cmd.CmdFuncV1(c)
 		b.checkCmdError(err, c)
 		if message != "" {
+<<<<<<< HEAD
 			b.SendMessage(c.Channel, c.ChannelData, message, c.User)
+=======
+			b.SendMessage(OutgoingMessage{
+				Target:  c.Channel,
+				Message: message,
+				Sender:  c.User,
+			})
+>>>>>>> ef71c72a524ae1242a47163d87b52dda69583bf6
 		}
 	case v2:
 		result, err := cmd.CmdFuncV2(c)
@@ -425,7 +451,16 @@ func (b *Bot) handleCmd(c *Cmd) {
 		}
 
 		if result.Message != "" {
+<<<<<<< HEAD
 			b.SendMessage(result.Channel, c.ChannelData, result.Message, c.User)
+=======
+			b.SendMessage(OutgoingMessage{
+				Target:      result.Channel,
+				Message:     result.Message,
+				Sender:      c.User,
+				ProtoParams: result.ProtoParams,
+			})
+>>>>>>> ef71c72a524ae1242a47163d87b52dda69583bf6
 		}
 	case v3:
 		result, err := cmd.CmdFuncV3(c)
@@ -437,7 +472,16 @@ func (b *Bot) handleCmd(c *Cmd) {
 			select {
 			case message := <-result.Message:
 				if message != "" {
+<<<<<<< HEAD
 					b.SendMessage(result.Channel, c.ChannelData, message, c.User)
+=======
+					b.SendMessage(OutgoingMessage{
+						Target:      result.Channel,
+						Message:     message,
+						Sender:      c.User,
+						ProtoParams: result.ProtoParams,
+					})
+>>>>>>> ef71c72a524ae1242a47163d87b52dda69583bf6
 				}
 			case <-result.Done:
 				return
@@ -450,7 +494,15 @@ func (b *Bot) checkCmdError(err error, c *Cmd) {
 	if err != nil {
 		errorMsg := fmt.Sprintf(errorExecutingCommand, c.Command, err.Error())
 		b.errored(errorMsg, err)
+<<<<<<< HEAD
 		b.SendMessage(c.Channel, c.ChannelData, errorMsg, c.User)
+=======
+		b.SendMessage(OutgoingMessage{
+			Target:  c.Channel,
+			Message: errorMsg,
+			Sender:  c.User,
+		})
+>>>>>>> ef71c72a524ae1242a47163d87b52dda69583bf6
 	}
 }
 
@@ -480,7 +532,14 @@ func (b *Bot) handleMessageStream(streamName string, ms *MessageStream) {
 				continue
 			}
 			if d.Message != "" {
+<<<<<<< HEAD
 				b.SendMessage(d.ChannelData.Channel, d.ChannelData, d.Message, nil)
+=======
+				b.SendMessage(OutgoingMessage{
+					Target:  d.ChannelData.Channel,
+					Message: d.Message,
+				})
+>>>>>>> ef71c72a524ae1242a47163d87b52dda69583bf6
 			}
 		case <-ms.Done:
 			return

@@ -112,10 +112,7 @@ func TestParser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.msg, func(t *testing.T) {
-			cmd, err := parse(test.msg, channel, user)
-			if err != nil {
-				t.Errorf("Expected Cmd:\n%#v\ngot:\nnil: %v", test.expected, err)
-			}
+			cmd, _ := parse(&Message{Text: test.msg}, channel, user)
 			if test.expected != nil && cmd != nil {
 				if test.expected.Raw != cmd.Raw {
 					t.Errorf("Expected Raw:\n%#v\ngot:\n%#v", test.expected.Raw, cmd.Raw)
@@ -172,12 +169,16 @@ func TestParser(t *testing.T) {
 	}
 }
 
-// func TestInvalidArguments(t *testing.T) {
-// 	cmd, err := parse("!cmd Invalid \"arg", &ChannelData{Channel: "#go-bot"}, &User{Nick: "user123"})
-// 	if err == nil {
-// 		t.Error("Expected error, got nil")
-// 	}
-// 	if cmd != nil {
-// 		t.Errorf("Expected nil, got %#v", cmd)
-// 	}
-// }
+func TestInvalidArguments(t *testing.T) {
+	cmd, err := parse(
+		&Message{Text: "!cmd Invalid \"arg"},
+		&ChannelData{Channel: "#go-bot"},
+		&User{Nick: "user123"},
+	)
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if cmd != nil {
+		t.Errorf("Expected nil, got %#v", cmd)
+	}
+}
