@@ -178,11 +178,11 @@ func (b *Bot) startPeriodicCommands() {
 }
 
 // MessageReceived must be called by the protocol upon receiving a message
-func (b *Bot) MessageReceived(channel *ChannelData, message *Message, sender *User) {
-	command, err := parse(message, channel, sender)
+func (b *Bot) MessageReceived(cd *ChannelData, message *Message, sender *User) {
+	command, err := parse(message, cd, sender)
 	if err != nil {
 		b.SendMessage(OutgoingMessage{
-			Target:  channel.Channel,
+			Target:  cd.Channel,
 			Message: err.Error(),
 			Sender:  sender,
 		})
