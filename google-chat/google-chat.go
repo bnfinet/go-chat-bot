@@ -11,7 +11,7 @@ import (
 
 	"cloud.google.com/go/pubsub"
 
-	bot "github.com/bnfinet/go-chat-bot"
+	"github.com/go-chat-bot/bot"
 	// "github.com/go-chat-bot/bot"
 	"golang.org/x/oauth2/google"
 )
