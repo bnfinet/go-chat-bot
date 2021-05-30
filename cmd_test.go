@@ -363,8 +363,8 @@ func TestInvalidCmdArgs(t *testing.T) {
 	if channel != "#go-bot" {
 		t.Error("Should reply to #go-bot channel")
 	}
-	if strings.HasPrefix(msgs[0], "Error parsing") {
-		t.Fatal("Should not reply with an error message")
+	if !strings.HasPrefix(msgs[0], "Error parsing") {
+		t.Fatal("Should reply with an error message", msgs)
 	}
 }
 
@@ -496,8 +496,8 @@ func TestHelpWithInvalidArgs(t *testing.T) {
 
 	waitMessages(t, 1, 0)
 
-	if strings.HasPrefix(msgs[0], "Error parsing") {
-		t.Fatal("Should not reply with an error message")
+	if !strings.HasPrefix(msgs[0], "Error parsing") {
+		t.Fatal("Should reply with an error message")
 	}
 }
 
@@ -689,7 +689,7 @@ func TestCmdV3WithoutSpecifyingChannel(t *testing.T) {
 	}
 }
 
-func TestMessageRecieveFilter(t *testing.T) {
+func TestMessageReceiveFilter(t *testing.T) {
 	reset()
 	hello := func(c *Cmd) (string, error) { return "after receive filter: " + c.Message, nil }
 	RegisterCommand("cmd", "", "", hello)
